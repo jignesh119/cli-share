@@ -104,7 +104,7 @@ const findAvaliablePort = () => {
 };
 
 const main = async () => {
-  let port, address, filePath, mode, debug, cli, ssid;
+  let port, address, filePath, mode, debug, cli, ssid, message;
   const helpText = `
 		cli-share - cli tool to share files btw devices in local network without leaving cli
 		${chalk.bold("Usage:")} 

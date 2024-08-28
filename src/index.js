@@ -9,7 +9,7 @@ import { fileURLToPath } from "url";
 
 const downloadServer = express(),
   uploadServer = express();
-let filePath, storagePath;
+let filePath, storagePath, message;
 
 const storage = multer.diskStorage({
   destination: (_, file, cb) => {
@@ -19,6 +19,30 @@ const storage = multer.diskStorage({
     cb(null, file.originalname);
   },
 });
+
+const startLogs = (mode) => {
+  const date = new Date();
+  const formatData = (input) => {
+    if (input > 9) return input;
+    else return `0${input}`;
+  };
+  const formatHour = (input) => {
+    if (input > 12) return input - 12;
+    return input;
+  };
+  (!mode ? downloadServer : uploadServer).use((req, _, next) => {
+    const dd = formatData(date.getDate()),
+      mm = formatData(date.getMonth() + 1),
+      yyyy = date.getFullYear(),
+      hh = formatData(formatHour(date.getHours())),
+      MM = formatData(date.getMinutes()),
+      SS = formatData(date.getSeconds());
+    console.log(
+      `${req.ip} - [${dd}/${mm}/${yyyy}:${hh}:${MM}:${SS}] "${req.method} ${req.path} ${req.protocol}"`,
+    );
+    next();
+  });
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -136,7 +160,7 @@ export const startDownloadServer = async ({ ...args }) => {
     );
 
     args.debug && console.log(url);
-    //TODO: add logging
+    startLogs(args.mode);
   });
 };
 
@@ -157,7 +181,7 @@ export const startUploadServer = async ({ ...args }) => {
       },
     );
     args.debug && console.log(url);
-    //TODO: start logs
+    startLogs(args.mode);
   });
 };
 export const sendMessage = ({ ...args }) => {
