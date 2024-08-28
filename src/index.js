@@ -26,7 +26,17 @@ uploadServer.set("views", path.join(__dirname, "..", "views"));
 uploadServer.use(express.static(path.join(__dirname, "..", "public")));
 uploadServer.set("view engine", "ejs");
 const upload = multer({ storage: storage }).single("file");
+uploadServer.use(express.urlencoded({ extended: true }));
 
+//when users want to view message from host
+downloadServer.get("/message", (req, res) => {
+  try {
+    res.status(200).send(message);
+    console.log(`message sent successfully to ${chalk.bold(req.ip)}`);
+  } catch (err) {
+    console.error(`error sending message \n${chalk.red(err)}`);
+  }
+});
 downloadServer.get("/file/:filename", (req, res) => {
   const { filename } = req.params;
   try {
@@ -73,6 +83,14 @@ downloadServer.get("/file/:filename", (req, res) => {
 
 uploadServer.get("/", (_, res) => {
   res.render("upload");
+});
+
+//users can send a text msg from client to this host
+uploadServer.post("/message", (req, res) => {
+  res.redirect("/");
+  console.log(
+    `received ${chalk.bold(req.body.message)} from ${chalk.bold(req.ip)}`,
+  );
 });
 
 uploadServer.post(

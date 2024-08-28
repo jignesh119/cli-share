@@ -7,7 +7,11 @@ import fs from "fs";
 import meow from "meow";
 import child_process from "child_process";
 import network from "network";
-import { startDownloadServer, startUploadServer } from "./index.js";
+import {
+  startDownloadServer,
+  startUploadServer,
+  sendMessage,
+} from "./index.js";
 
 const getLocalIp = () => {
   const interfaces = os.networkInterfaces();
@@ -104,6 +108,8 @@ const main = async () => {
   const helpText = `
 		cli-share - cli tool to share files btw devices in local network without leaving cli
 		${chalk.bold("Usage:")} 
+    ${chalk.italic("- message passing:")} cli-share [--message MESSAGE]
+      $ cli-share --message,-m MESSAGE
 
     ${chalk.italic("- file sharing: ")} cli-share [option {value}] <path>
       $ cli-share /path/to/file || /path/to/folder
@@ -117,6 +123,7 @@ const main = async () => {
       -r --receive \tenable upload mode, given path's used to store recieved file, defaults to pwd
       -p --port    \tuse a custom port for server; note: 1024<=PORT<=65535 to avoid conflicting errors
       -i --ip      \tbind webserver to custom ip, must be accessible from within subnetwork 
+      -m --message \tsend message to client
       -h --help    \tshow this screen
       -v --version \tshow version
 
@@ -128,6 +135,7 @@ const main = async () => {
       $ cli-share -r
       $ cli-share -r ./Downloads -p 5000 -i 192.168.200.23
       $ cli-share -m "I love cli"
+      $ cli-share --message "messaging..." -p 4000 -i 192.168.12.24
 	`;
   getLocalIpsAvailable(async (err, ips) => {
     if (err) {
@@ -153,6 +161,13 @@ const main = async () => {
             aliases: ["Port", "PORT"],
             isMultiple: false,
           },
+          message: {
+            type: "boolean",
+            default: false,
+            shortFlag: "m",
+            aliases: ["msg"],
+            isMultiple: false,
+          },
           help: {
             type: "boolean",
             default: false,
@@ -175,28 +190,39 @@ const main = async () => {
       mode = cli.flags.r || cli.flags.receive;
       port = cli.flags.port || cli.flags.p || cli.flags.Port || cli.flags.PORT;
       address = cli.flags.ip || cli.flags.i || cli.flags.IP || cli.flags.iP;
+      message = cli.flags.message || cli.flags.m || cli.flags.msg;
       filePath = cli.input[0];
-      if (!filePath && mode) {
-        filePath = ".";
+      const msg = cli.input?.join(" ");
+      if (!message) {
+        if (!filePath && mode) {
+          filePath = ".";
+        }
+        if (!fs.existsSync(filePath)) {
+          console.log(chalk.red.bold(`No such file or directory ${filePath}`));
+          if (!mode)
+            console.log(chalk.red.bold(`specify a valid file to send`));
+          if (mode)
+            console.log(chalk.red.bold(`specify a folder to receive to`));
+          console.log(chalk.red(`see cli-share --help for more info`));
+          process.exit(1);
+        }
+        const stats = fs.statSync(path.normalize(path.resolve(filePath)));
+        if (mode && !stats.isDirectory()) {
+          console.log(chalk.red.bold(`${filePath} is not a folder`));
+          console.log(chalk.red(`see cli-share --help for more info`));
+          process.exit(1);
+        }
+        if (
+          mode &&
+          path.basename(path.normalize(path.resolve(filePath))) == "public"
+        ) {
+          console.log(chalk.red.bold(`cannot choose public folder to receive`));
+          process.exit(1);
+        }
       }
-      if (!fs.existsSync(filePath)) {
-        console.log(chalk.red(`No such file or directory ${filePath}`));
-        if (!mode) console.log(chalk.red(`specify a valid file to send`));
-        if (mode) console.log(chalk.red(`specify a folder to receive to`));
+      if (message && !msg) {
+        console.log(chalk.red.bold(`enter valid message to send`));
         console.log(chalk.red(`see cli-share --help for more info`));
-        process.exit(1);
-      }
-      const stats = fs.statSync(path.normalize(path.resolve(filePath)));
-      if (mode && !stats.isDirectory()) {
-        console.log(chalk.red(`${filePath} is not a folder`));
-        console.log(chalk.red(`see cli-share --help for more info`));
-        process.exit(1);
-      }
-      if (
-        mode &&
-        path.basename(path.normalize(path.resolve(filePath))) == "public"
-      ) {
-        console.log(chalk.red.bold(`cannot choose public folder to receive`));
         process.exit(1);
       }
       if (!port || port < 1024) {
@@ -210,26 +236,16 @@ const main = async () => {
       if (!address) {
         address = getLocalIp();
       }
-      ssid = getSSID();
+      const ssid = getSSID();
       console.log(
         `make sure your device is connected to ${chalk.blue.bold(ssid)}`,
       );
-      if (mode) {
-        startUploadServer({
-          filePath,
-          port,
-          address,
-          debug,
-          mode,
-        });
+      if (message) {
+        sendMessage({ port, address, debug, msg });
+      } else if (mode) {
+        startUploadServer({ filePath, port, address, debug, mode: mode });
       } else
-        startDownloadServer({
-          filePath,
-          port,
-          address,
-          debug,
-          mode: null,
-        });
+        startDownloadServer({ filePath, port, address, debug, mode: null });
     }
   });
 };
