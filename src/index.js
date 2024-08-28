@@ -22,8 +22,8 @@ const storage = multer.diskStorage({
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-uploadServer.set("views", path.join(__dirname, "views"));
-uploadServer.use(express.static(path.join(__dirname, "public")));
+uploadServer.set("views", path.join(__dirname, "..", "views"));
+uploadServer.use(express.static(path.join(__dirname, "..", "public")));
 uploadServer.set("view engine", "ejs");
 const upload = multer({ storage: storage }).single("file");
 
