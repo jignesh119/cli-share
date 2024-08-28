@@ -9,7 +9,7 @@
     "src/*"
   ],
   "bin": {
-    "cli-share": ".src/ip.js"
+    "clishare": "./src/ip.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
