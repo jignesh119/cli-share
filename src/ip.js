@@ -1,9 +1,13 @@
 #! /usr/bin/env node
+import os from "os";
 import chalk from "chalk";
+import http from "http";
+import path from "path";
+import fs from "fs";
 import meow from "meow";
 import child_process from "child_process";
 import network from "network";
-import { startDownloadServer } from "./index.js";
+import { startDownloadServer, startUploadServer } from "./index.js";
 
 const getLocalIp = () => {
   const interfaces = os.networkInterfaces();
@@ -96,7 +100,7 @@ const findAvaliablePort = () => {
 };
 
 const main = async () => {
-  let port, address, filePath, mode, debug, cli, message;
+  let port, address, filePath, mode, debug, cli, message, ssid;
   const helpText = `
 		cli-share - cli tool to share files btw devices in same network by scanning a qr
 		${chalk.bold("Usage:")} 
@@ -132,16 +136,28 @@ const main = async () => {
       description: false,
     });
     debug = true;
+    mode = null;
+    ssid = getSSID();
+    address = getLocalIp();
     console.log(
-      `make sure your device is connected to a network before trying the app`,
+      `make sure your device is connected to ${chalk.blue.bold(ssid)}`,
     );
-    startDownloadServer({
-      filePath: "./sample.txt",
-      port: 4000,
-      address: "192.168.1.10",
-      debug: true,
-      mode: null,
-    });
+    if (mode) {
+      startUploadServer({
+        filePath,
+        port: 4000,
+        address,
+        debug: true,
+        mode: mode,
+      });
+    } else
+      startDownloadServer({
+        filePath: "./sample.txt",
+        port: 4000,
+        address,
+        debug: true,
+        mode: null,
+      });
   });
 };
 main();
