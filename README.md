@@ -2,6 +2,10 @@
 
 **Cli-Share** is a command-line tool for sharing files and messages between devices on the same local network without leaving the CLI. Users can transfer files by simply scanning a QR code or visiting the address displayed in the CLI. The app supports both file and message sharing between a host (the one running the CLI) and clients (those who scan the QR code or visit the provided address).
 
+## Demo
+
+![](https://github.com/jignesh119/cli-share/blob/main/assets/CliShareDemo.gif)
+
 ## Features
 
 - **File Sharing**: Share files from the host to clients over the same local network.
